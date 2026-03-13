@@ -98,13 +98,13 @@
       </button>
       <div class="collapse navbar-collapse" id="adminNav">
         <ul class="navbar-nav ms-auto align-items-lg-center">
-          <li class="nav-item me-lg-3">
+          <li class="nav-item me-lg-3 admin-only d-none">
             <span class="nav-link text-info d-flex align-items-center gap-1">
               <i class='bx bx-user-circle fs-5'></i>
               <span id="currentUserDisplay">...</span>
             </span>
           </li>
-          <li class="nav-item">
+          <li class="nav-item admin-only d-none">
             <a class="nav-link" href="admin.html"><i class='bx bx-arrow-back me-1'></i> Torna Dashboard</a>
           </li>
           <li class="nav-item">
@@ -184,6 +184,9 @@
       // Mostra nome utente nella navbar
       const userDisplay = document.getElementById('currentUserDisplay');
       if (userDisplay) userDisplay.innerText = profile.username;
+
+      // Mostra elementi navbar admin
+      document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('d-none'));
 
       // Mostra dashboard logs
       document.getElementById('logsDashboard').classList.remove('d-none');

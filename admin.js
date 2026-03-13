@@ -16,6 +16,7 @@ const eventsList = document.getElementById('eventsList');
 const tagsList = document.getElementById('tagsList');
 const eventTagSelect = document.getElementById('eventTag');
 const filterTimeSelect = document.getElementById('filterTime');
+const eventSearchInput = document.getElementById('eventSearch');
 const cancelEditBtn = document.getElementById('cancelEdit');
 const submitBtn = document.getElementById('submitBtn');
 const formTitle = document.getElementById('formTitle');
@@ -24,6 +25,7 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 
 window.currentUserId = null;
 let allTags = [];
+let allEventsData = []; // Cache per la ricerca locale
 let editingEventData = null; // Per tracciare modifiche ai log
 
 const COMMON_ICONS = [
@@ -132,10 +134,19 @@ setTimeout(() => {
     }
 }, 5000);
 
+function toggleAdminNav(show) {
+    const adminElements = document.querySelectorAll('.admin-only');
+    adminElements.forEach(el => {
+        if (show) el.classList.remove('d-none');
+        else el.classList.add('d-none');
+    });
+}
+
 function showDashboard() {
     loginSection.style.display = 'none';
     passwordChangeSection.style.display = 'none';
     adminDashboard.style.display = 'block';
+    toggleAdminNav(true);
     hideLoading();
 }
 
@@ -143,6 +154,7 @@ function showPasswordChange() {
     loginSection.style.display = 'none';
     adminDashboard.style.display = 'none';
     passwordChangeSection.style.display = 'block';
+    toggleAdminNav(false);
     hideLoading();
 }
 
@@ -150,6 +162,7 @@ function showLogin() {
     loginSection.style.display = 'block';
     adminDashboard.style.display = 'none';
     passwordChangeSection.style.display = 'none';
+    toggleAdminNav(false);
     hideLoading();
     
     // Ripristina il pulsante se era rimasto in caricamento
@@ -202,6 +215,9 @@ async function checkUser(session) {
                 
                 if (filterTimeSelect) {
                     filterTimeSelect.onchange = loadEvents;
+                }
+                if (eventSearchInput) {
+                    eventSearchInput.oninput = renderEventsList; // Filtra ad ogni tasto premuto
                 }
                 loadLogs();
                 }
@@ -472,7 +488,7 @@ async function loadEvents() {
     
     let query = supabaseClient.from('events').select('*');
     
-    // Applica filtro se necessario
+    // Applica filtro temporale se necessario
     if (filterTimeSelect && filterTimeSelect.value === 'future') {
         const today = new Date().toISOString().split('T')[0];
         query = query.gte('date', today);
@@ -485,8 +501,25 @@ async function loadEvents() {
         return;
     }
 
-    if (data.length === 0) {
-        eventsList.innerHTML = '<div class="text-center text-muted py-5"><i class="bx bx-calendar-x fs-1 mb-2"></i><br>Nessun evento trovato.</div>';
+    allEventsData = data || [];
+    renderEventsList();
+}
+
+function renderEventsList() {
+    const searchTerm = eventSearchInput ? eventSearchInput.value.toLowerCase().trim() : "";
+    
+    // Filtra in base alla ricerca
+    const filteredData = allEventsData.filter(event => {
+        return event.titolo.toLowerCase().includes(searchTerm) || 
+               event.luogo.toLowerCase().includes(searchTerm) ||
+               (event.tag_label && event.tag_label.toLowerCase().includes(searchTerm));
+    });
+
+    if (filteredData.length === 0) {
+        eventsList.innerHTML = `<div class="text-center text-muted py-5">
+            <i class="bx bx-search-alt fs-1 mb-2"></i><br>
+            ${searchTerm ? 'Nessun risultato per la ricerca' : 'Nessun evento trovato.'}
+        </div>`;
         return;
     }
 
@@ -494,7 +527,7 @@ async function loadEvents() {
 
     eventsList.innerHTML = `
         <div class="list-group list-group-flush mt-2">
-            ${data.map(event => {
+            ${filteredData.map(event => {
                 const tagObj = allTags.find(t => t.name === event.tag) || { label: event.tag, color_class: 'badge-secondary', icon: 'bx-tag' };
                 const tagIcon = getFullIcon(tagObj.icon);
                 

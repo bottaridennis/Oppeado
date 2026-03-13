@@ -195,6 +195,31 @@
     .hover-bg:hover {
       background: rgba(255, 255, 255, 0.05) !important;
     }
+
+    /* Scrollbar personalizzata per la lista eventi */
+    #eventsList {
+      max-height: 600px;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+
+    #eventsList::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #eventsList::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    #eventsList::-webkit-scrollbar-thumb {
+      background: rgba(0, 191, 196, 0.3);
+      border-radius: 10px;
+    }
+
+    #eventsList::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 191, 196, 0.5);
+    }
   </style>
 </head>
 
@@ -217,7 +242,7 @@
       </button>
       <div class="collapse navbar-collapse" id="adminNav">
         <ul class="navbar-nav ms-auto align-items-lg-center">
-          <li class="nav-item me-lg-3">
+          <li class="nav-item me-lg-3 admin-only d-none">
             <span class="nav-link text-info d-flex align-items-center gap-1">
               <i class='bx bx-user-circle fs-5'></i>
               <span id="currentUserDisplay">...</span>
@@ -226,10 +251,10 @@
           <li class="nav-item">
             <a class="nav-link" href="index.html"><i class='bx bx-home-alt me-1'></i> Home Pubblica</a>
           </li>
-          <li class="nav-item">
+          <li class="nav-item admin-only d-none">
             <a class="nav-link" href="logs.html"><i class='bx bx-list-ul me-1'></i> Log Attività</a>
           </li>
-          <li class="nav-item mt-2 mt-lg-0 ms-lg-3">
+          <li class="nav-item mt-2 mt-lg-0 ms-lg-3 admin-only d-none">
             <button id="btnLogout" class="btn btn-outline-danger btn-sm">Logout</button>
           </li>
         </ul>
@@ -328,12 +353,18 @@
         <!-- LISTA EVENTI -->
         <div class="col-lg-7">
           <div class="glass-card h-100">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <h3 class="h5 mb-0">Eventi Esistenti</h3>
-              <select id="filterTime" class="form-select form-select-sm w-auto">
-                <option value="future">Prossimi</option>
-                <option value="all">Tutti (Archivio)</option>
-              </select>
+            <div class="d-flex flex-column gap-3 mb-4">
+              <div class="d-flex justify-content-between align-items-center">
+                <h3 class="h5 mb-0">Eventi Esistenti</h3>
+                <select id="filterTime" class="form-select form-select-sm w-auto">
+                  <option value="future">Prossimi</option>
+                  <option value="all">Tutti (Archivio)</option>
+                </select>
+              </div>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-dark border-secondary text-secondary"><i class='bx bx-search'></i></span>
+                <input type="text" id="eventSearch" class="form-control form-control-sm border-secondary" placeholder="Cerca per titolo o luogo...">
+              </div>
             </div>
             <div id="eventsList">
               <div class="text-center py-5">
