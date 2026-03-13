@@ -8,6 +8,8 @@ window.supabaseClient = supabaseClient;
 const loginSection = document.getElementById('loginSection');
 const loginForm = document.getElementById('loginForm');
 const adminDashboard = document.getElementById('adminDashboard');
+const passwordChangeSection = document.getElementById('passwordChangeSection');
+const passwordChangeForm = document.getElementById('passwordChangeForm');
 const eventForm = document.getElementById('eventForm');
 const tagForm = document.getElementById('tagForm');
 const eventsList = document.getElementById('eventsList');
@@ -60,13 +62,22 @@ setTimeout(() => {
 
 function showDashboard() {
     loginSection.style.display = 'none';
+    passwordChangeSection.style.display = 'none';
     adminDashboard.style.display = 'block';
+    hideLoading();
+}
+
+function showPasswordChange() {
+    loginSection.style.display = 'none';
+    adminDashboard.style.display = 'none';
+    passwordChangeSection.style.display = 'block';
     hideLoading();
 }
 
 function showLogin() {
     loginSection.style.display = 'block';
     adminDashboard.style.display = 'none';
+    passwordChangeSection.style.display = 'none';
     hideLoading();
     
     // Ripristina il pulsante se era rimasto in caricamento
@@ -83,7 +94,7 @@ async function checkUser(session) {
         try {
             const { data, error } = await supabaseClient
                 .from('profiles')
-                .select('role, username')
+                .select('role, username, must_change_password')
                 .eq('id', session.user.id);
 
             if (error) {
@@ -102,15 +113,22 @@ async function checkUser(session) {
             if (profile.role === 'admin') {
                 window.currentUserId = session.user.id;
                 window.currentUsername = profile.username;
-                showDashboard();
+
+                // Verifica se deve cambiare password
+                if (profile.must_change_password) {
+                    showPasswordChange();
+                } else {
+                    showDashboard();
                 initIconPicker();
                 loadTags();
                 loadEvents();
+                loadTeam(); // Carica l'elenco utenti
                 
                 if (filterTimeSelect) {
                     filterTimeSelect.onchange = loadEvents;
                 }
                 loadLogs();
+                }
             } else {
                 alert('Accesso negato. Solo gli amministratori possono entrare.');
                 showLogin();
@@ -186,6 +204,55 @@ loginForm.onsubmit = async (e) => {
         alert("Errore login: " + err.message);
         btn.disabled = false;
         btn.innerText = originalText;
+    }
+};
+
+passwordChangeForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const newPass = document.getElementById('newPassword').value;
+    const confirmPass = document.getElementById('confirmPassword').value;
+    const btn = passwordChangeForm.querySelector('button');
+
+    if (newPass !== confirmPass) {
+        alert("Le password non coincidono!");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "Aggiornamento in corso...";
+
+    try {
+        // 1. Aggiorna password in Auth
+        const { error: authError } = await supabaseClient.auth.updateUser({
+            password: newPass
+        });
+
+        if (authError) throw authError;
+
+        // 2. Aggiorna flag in Profiles
+        const { error: profileError } = await supabaseClient
+            .from('profiles')
+            .update({ must_change_password: false })
+            .eq('id', window.currentUserId);
+
+        if (profileError) throw profileError;
+
+        logAction('PASSWORD_CHANGED', { info: 'L\'utente ha aggiornato la password al primo accesso' });
+        alert("Password aggiornata con successo! Benvenuto.");
+        showDashboard();
+        
+        // Carica dati dashboard
+        initIconPicker();
+        loadTags();
+        loadEvents();
+        loadTeam();
+        if (filterTimeSelect) filterTimeSelect.onchange = loadEvents;
+        loadLogs();
+
+    } catch (err) {
+        alert("Errore aggiornamento: " + err.message);
+        btn.disabled = false;
+        btn.innerText = "Aggiorna Password e Accedi";
     }
 };
 
@@ -478,3 +545,46 @@ cancelEditBtn.onclick = resetForm;
 
 // --- FINE ---
 // Nota: La gestione dei log è ora in logs.js
+
+// --- GESTIONE TEAM ---
+
+async function loadTeam() {
+    const teamList = document.getElementById('teamList');
+    if (!teamList) return;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('username, email, role, must_change_password')
+            .order('username', { ascending: true });
+
+        if (error) throw error;
+
+        teamList.innerHTML = data.map(member => {
+            const statusClass = member.must_change_password ? 'text-warning' : 'text-success';
+            const statusIcon = member.must_change_password ? 'bx-lock-alt' : 'bx-check-shield';
+            const statusText = member.must_change_password ? 'In attesa cambio password' : 'Attivo';
+
+            return `
+                <tr>
+                    <td>
+                        <div class="fw-semibold text-white">${member.username}</div>
+                    </td>
+                    <td class="text-body-secondary small">${member.email}</td>
+                    <td>
+                        <span class="${statusClass} small d-flex align-items-center gap-1">
+                            <i class='bx ${statusIcon}'></i> ${statusText}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle small">${member.role}</span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error("Errore caricamento team:", err);
+        teamList.innerHTML = `<tr><td colspan="4" class="text-center text-danger small py-3">Errore: ${err.message}</td></tr>`;
+    }
+}

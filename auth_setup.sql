@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   username TEXT UNIQUE,
   role TEXT DEFAULT 'user',
   email TEXT,
+  must_change_password BOOLEAN DEFAULT TRUE,
   PRIMARY KEY (id),
   CONSTRAINT username_length CHECK (char_length(username) >= 3)
 );
@@ -132,20 +133,22 @@ $$ LANGUAGE plpgsql;
 UPDATE public.profiles
 SET
   role = 'admin',
-  username = 'admin'
+  username = 'admin',
+  must_change_password = FALSE
 WHERE email = 'bottaridennis@gmail.com';
 
 -- If for some reason the profile was not created automatically, this will create it.
 -- Run this part ONLY if the UPDATE above affects 0 rows.
-INSERT INTO public.profiles (id, email, username, role)
+INSERT INTO public.profiles (id, email, username, role, must_change_password)
 SELECT
   id,
   'bottaridennis@gmail.com',
   'admin',
-  'admin'
+  'admin',
+  FALSE
 FROM auth.users
 WHERE email = 'bottaridennis@gmail.com'
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET must_change_password = FALSE;
 
 -- 7. FUNCTION TO GET EMAIL FROM USERNAME (for login)
 CREATE OR REPLACE FUNCTION public.get_email_from_username(p_username TEXT)

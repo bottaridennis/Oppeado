@@ -28,11 +28,11 @@
       transition: opacity 0.4s;
     }
 
-    #loginSection, #adminDashboard {
+    #loginSection, #adminDashboard, #passwordChangeSection {
       display: none;
     }
 
-    html, body {
+    body {
       overflow-x: hidden;
       width: 100%;
       position: relative;
@@ -199,6 +199,25 @@
       </form>
     </div>
 
+    <!-- SEZIONE CAMBIO PASSWORD -->
+    <div id="passwordChangeSection" class="glass-card text-center mx-auto" style="max-width: 450px;" data-aos="fade-up">
+      <i class='bx bx-lock-open-alt display-4 text-warning mb-3'></i>
+      <h2 class="h4 mb-3">Primo Accesso</h2>
+      <p class="text-muted small mb-4">Per motivi di sicurezza, devi scegliere una nuova password prima di procedere.</p>
+      
+      <form id="passwordChangeForm">
+        <div class="mb-3 text-start">
+          <label class="form-label small">Nuova Password</label>
+          <input type="password" id="newPassword" class="form-control" required minlength="6">
+        </div>
+        <div class="mb-4 text-start">
+          <label class="form-label small">Conferma Password</label>
+          <input type="password" id="confirmPassword" class="form-control" required minlength="6">
+        </div>
+        <button type="submit" class="btn btn-warning w-100">Aggiorna Password e Accedi</button>
+      </form>
+    </div>
+
     <!-- SEZIONE DASHBOARD -->
     <div id="adminDashboard" data-aos="fade-in">
       <div class="d-flex justify-content-between align-items-center mb-5 dashboard-header">
@@ -302,16 +321,29 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- SEZIONE LOGS -->
-      <div class="glass-card mt-4">
-        <h3 class="h5 mb-4">Storico Attività (Logs)</h3>
-        <div id="logsList" class="small" style="max-height: 400px; overflow-y: auto;">
-          <div class="text-center py-4">
-            <div class="spinner-border text-info spinner-sm"></div>
+        <!-- GESTIONE TEAM -->
+        <div class="col-12">
+          <div class="glass-card">
+            <h3 class="h5 mb-4"><i class='bx bx-group text-info'></i> Team di Amministrazione</h3>
+            <div class="table-responsive">
+              <table class="table table-dark table-hover align-middle mb-0">
+                <thead>
+                  <tr class="text-body-secondary small text-uppercase">
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Stato Password</th>
+                    <th>Ruolo</th>
+                  </tr>
+                </thead>
+                <tbody id="teamList">
+                  <tr><td colspan="4" class="text-center py-3 text-muted">Caricamento team...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+
       </div>
 
     </div>
