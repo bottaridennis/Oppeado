@@ -18,9 +18,11 @@ const cancelEditBtn = document.getElementById('cancelEdit');
 const submitBtn = document.getElementById('submitBtn');
 const formTitle = document.getElementById('formTitle');
 const btnLogout = document.getElementById('btnLogout');
+const loadingOverlay = document.getElementById('loadingOverlay');
 
 window.currentUserId = null;
 let allTags = [];
+let editingEventData = null; // Per tracciare modifiche ai log
 
 const COMMON_ICONS = [
     'bx-star', 'bx-heart', 'bx-calendar', 'bx-time', 'bx-map', 
@@ -35,38 +37,72 @@ const COMMON_ICONS = [
 
 // --- INIZIALIZZAZIONE ---
 
-// Controlla sessione esistente
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
+// Gestione visibilità sezioni e overlay
+let loadingHidden = false;
+function hideLoading() {
+    if (loadingHidden) return;
+    loadingHidden = true;
+    if (loadingOverlay) {
+        loadingOverlay.style.opacity = '0';
+        setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+        }, 400);
+    }
+}
+
+// Timeout di sicurezza: se dopo 5 secondi siamo ancora su caricamento, forziamo il login
+setTimeout(() => {
+    if (!loadingHidden) {
+        console.warn("Safety timeout: forzando visualizzazione login");
+        showLogin();
+    }
+}, 5000);
+
+function showDashboard() {
+    loginSection.style.display = 'none';
+    adminDashboard.style.display = 'block';
+    hideLoading();
+}
+
+function showLogin() {
+    loginSection.style.display = 'block';
+    adminDashboard.style.display = 'none';
+    hideLoading();
+    
+    // Ripristina il pulsante se era rimasto in caricamento
+    const btn = loginForm.querySelector('button');
+    if (btn) {
+        btn.disabled = false;
+        btn.innerText = "Accedi";
+    }
+}
+
+// Funzione principale di controllo accesso
+async function checkUser(session) {
     if (session) {
         try {
-            // Verifica il ruolo dell'utente
             const { data, error } = await supabaseClient
                 .from('profiles')
                 .select('role, username')
                 .eq('id', session.user.id);
 
             if (error) {
-                alert('Errore recupero profilo: ' + error.message);
+                console.error("Profile fetch error:", error);
                 showLogin();
                 return;
             }
 
             if (!data || data.length === 0) {
-                alert('Utente non registrato nel database. Contatta l\'amministratore.');
                 showLogin();
                 return;
             }
 
             const profile = data[0];
 
-            // Solo gli admin possono accedere
             if (profile.role === 'admin') {
-                currentUserId = session.user.id;
+                window.currentUserId = session.user.id;
                 window.currentUsername = profile.username;
-                
-                loginSection.style.display = 'none';
-                adminDashboard.style.display = 'block';
-                
+                showDashboard();
                 initIconPicker();
                 loadTags();
                 loadEvents();
@@ -80,33 +116,32 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 showLogin();
             }
         } catch (err) {
-            alert("Errore durante l'accesso: " + err.message);
+            console.error("Auth check error:", err);
             showLogin();
         }
     } else {
-        currentUserId = null;
+        window.currentUserId = null;
         showLogin();
     }
-});
+}
+
+// Avvio immediato e ascolto cambiamenti
+(async () => {
+    // 1. Controlla sessione subito al caricamento
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    await checkUser(session);
+
+    // 2. Ascolta cambiamenti futuri (login/logout)
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        console.log("Auth event:", event);
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            await checkUser(session);
+        }
+    });
+})();
 
 // --- GESTIONE UI ---
-
-function showDashboard() {
-    loginSection.style.display = 'none';
-    adminDashboard.style.display = 'block';
-}
-
-function showLogin() {
-    loginSection.style.display = 'block';
-    adminDashboard.style.display = 'none';
-    
-    // Ripristina il pulsante se era rimasto in caricamento
-    const btn = loginForm.querySelector('button');
-    if (btn) {
-        btn.disabled = false;
-        btn.innerText = "Accedi";
-    }
-}
+// Nota: showDashboard e showLogin sono state spostate sopra per visibilità
 
 // --- AUTENTICAZIONE ---
 
@@ -254,6 +289,7 @@ tagForm.onsubmit = async (e) => {
     if (error) {
         alert("Errore salvataggio tag: " + error.message);
     } else {
+        logAction('CREATE_TAG', { name, label });
         tagForm.reset();
         loadTags();
     }
@@ -261,9 +297,17 @@ tagForm.onsubmit = async (e) => {
 
 async function deleteTag(id) {
     if (!confirm("Sei sicuro? Se il tag è usato da degli eventi, l'eliminazione fallirà.")) return;
+    
+    // Recupera info per log
+    const { data: tagData } = await supabaseClient.from('tags').select('label').eq('id', id).single();
+    
     const { error } = await supabaseClient.from('tags').delete().eq('id', id);
-    if (error) alert("Errore: " + error.message);
-    else loadTags();
+    if (error) {
+        alert("Errore: " + error.message);
+    } else {
+        if (tagData) logAction('DELETE_TAG', { label: tagData.label });
+        loadTags();
+    }
 }
 
 // --- CRUD EVENTI ---
@@ -336,7 +380,39 @@ eventForm.onsubmit = async (e) => {
         alert("Errore salvataggio: " + res.error.message);
     } else {
         const action = id ? 'UPDATE_EVENT' : 'CREATE_EVENT';
-        logAction(action, { title: titolo });
+        let logDetails = { title: titolo };
+
+        if (id && editingEventData) {
+            // Calcola differenze per il log stile Discord
+            const changes = [];
+            const fields = [
+                { key: 'date', label: 'Data' },
+                { key: 'time_start', label: 'Inizio' },
+                { key: 'time_end', label: 'Fine' },
+                { key: 'titolo', label: 'Titolo' },
+                { key: 'tag', label: 'Tag' },
+                { key: 'luogo', label: 'Luogo' },
+                { key: 'testo', label: 'Descrizione' }
+            ];
+
+            fields.forEach(f => {
+                const oldVal = editingEventData[f.key] || '';
+                const newVal = eventData[f.key] || '';
+                if (oldVal !== newVal) {
+                    changes.push({ field: f.label, old: oldVal, new: newVal });
+                }
+            });
+
+            if (changes.length > 0) {
+                logDetails.changes = changes;
+            }
+        } else if (!id) {
+            // Nuovo evento: logga dettagli base
+            logDetails.location = luogo;
+            logDetails.date = date;
+        }
+
+        logAction(action, logDetails);
         resetForm();
         loadEvents();
         loadLogs();
@@ -373,6 +449,8 @@ async function editEvent(id) {
         return;
     }
 
+    editingEventData = data; // Salva per il log dei cambiamenti
+
     document.getElementById('eventId').value = data.id;
     document.getElementById('eventDate').value = data.date;
     document.getElementById('eventTimeStart').value = data.time_start || '21:00';
@@ -390,6 +468,7 @@ async function editEvent(id) {
 function resetForm() {
     eventForm.reset();
     document.getElementById('eventId').value = "";
+    editingEventData = null; // Pulisce stato log
     formTitle.innerText = "Aggiungi Evento";
     submitBtn.innerText = "Salva Evento";
     cancelEditBtn.classList.add('d-none');

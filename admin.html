@@ -16,6 +16,22 @@
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 
   <style>
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: #05060d;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.4s;
+    }
+
+    #loginSection, #adminDashboard {
+      display: none;
+    }
+
     html, body {
       overflow-x: hidden;
       width: 100%;
@@ -159,6 +175,11 @@
 </head>
 
 <body>
+  <div id="loadingOverlay">
+    <img src="logo.PNG" alt="Logo" class="mb-3" style="height: 60px;">
+    <div class="spinner-border text-info"></div>
+    <p class="mt-3 text-muted small">Caricamento sessione...</p>
+  </div>
 
   <div class="container">
     <!-- SEZIONE LOGIN -->
@@ -183,6 +204,7 @@
       <div class="d-flex justify-content-between align-items-center mb-5 dashboard-header">
         <div class="d-flex align-items-center gap-3">
           <a href="index.html" class="btn btn-outline-info btn-sm"><i class='bx bx-home-alt'></i> Home</a>
+          <a href="logs.html" class="btn btn-outline-warning btn-sm"><i class='bx bx-list-ul'></i> Log Attività</a>
           <h1 class="mb-0">Dashboard Eventi</h1>
         </div>
         <button id="btnLogout" class="btn btn-outline-danger btn-sm">Logout</button>
