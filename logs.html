@@ -86,7 +86,36 @@
 
 <body>
 
-  <div class="container py-5">
+  <!-- NAVBAR ADMIN -->
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="backdrop-filter: blur(12px); background-color: rgba(5, 6, 13, .86);">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
+        <img src="logo.PNG" style="height: 32px;">
+        <span class="fw-semibold text-white">Admin Logs</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="adminNav">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item me-lg-3">
+            <span class="nav-link text-info d-flex align-items-center gap-1">
+              <i class='bx bx-user-circle fs-5'></i>
+              <span id="currentUserDisplay">...</span>
+            </span>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin.html"><i class='bx bx-arrow-back me-1'></i> Torna Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="index.html"><i class='bx bx-home-alt me-1'></i> Home Pubblica</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-5" style="padding-top: 100px !important;">
     <!-- SEZIONE LOGIN (Se non loggato) -->
     <div id="loginSection" class="glass-card text-center d-none">
       <img src="logo.PNG" alt="Logo" class="mb-4" style="height: 60px;">
@@ -142,7 +171,7 @@
       // Verifica ruolo admin
       const { data: profile } = await supabaseClient
         .from('profiles')
-        .select('role')
+        .select('role, username')
         .eq('id', session.user.id)
         .single();
 
@@ -151,6 +180,10 @@
         window.location.href = 'index.html';
         return;
       }
+
+      // Mostra nome utente nella navbar
+      const userDisplay = document.getElementById('currentUserDisplay');
+      if (userDisplay) userDisplay.innerText = profile.username;
 
       // Mostra dashboard logs
       document.getElementById('logsDashboard').classList.remove('d-none');

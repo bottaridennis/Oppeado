@@ -113,6 +113,10 @@ async function checkUser(session) {
             if (profile.role === 'admin') {
                 window.currentUserId = session.user.id;
                 window.currentUsername = profile.username;
+                
+                // Mostra nome utente nella navbar
+                const userDisplay = document.getElementById('currentUserDisplay');
+                if (userDisplay) userDisplay.innerText = profile.username;
 
                 // Verifica se deve cambiare password
                 if (profile.must_change_password) {
@@ -328,12 +332,24 @@ async function loadTags() {
 
 function renderTags() {
     if (!tagsList) return;
-    tagsList.innerHTML = allTags.map(t => `
-        <div class="d-flex justify-content-between align-items-center mb-1 border-bottom border-secondary pb-1">
-            <span><i class='${t.icon}'></i> ${t.label} <small class="text-muted">(${t.name})</small></span>
-            <button class="btn btn-link btn-sm text-danger p-0" onclick="deleteTag('${t.id}')"><i class='bx bx-x'></i></button>
+    if (allTags.length === 0) {
+        tagsList.innerHTML = '<p class="text-muted small text-center py-2">Nessun tag creato.</p>';
+        return;
+    }
+    
+    tagsList.innerHTML = `
+        <div class="d-flex flex-wrap gap-2 pt-2">
+            ${allTags.map(t => `
+                <div class="tag-pill d-flex align-items-center gap-2 px-2 py-1 rounded-pill border border-secondary bg-dark-subtle" style="font-size: 0.8rem;">
+                    <i class='${t.icon} text-info'></i>
+                    <span class="text-white">${t.label}</span>
+                    <button class="btn btn-link btn-sm text-danger p-0 lh-1" onclick="deleteTag('${t.id}')" title="Elimina tag">
+                        <i class='bx bx-x-circle'></i>
+                    </button>
+                </div>
+            `).join('')}
         </div>
-    `).join('');
+    `;
 }
 
 function populateTagSelect() {
@@ -398,24 +414,65 @@ async function loadEvents() {
     }
 
     if (data.length === 0) {
-        eventsList.innerHTML = '<div class="text-center text-muted py-4">Nessun evento trovato.</div>';
+        eventsList.innerHTML = '<div class="text-center text-muted py-5"><i class="bx bx-calendar-x fs-1 mb-2"></i><br>Nessun evento trovato.</div>';
         return;
     }
 
-    eventsList.innerHTML = data.map(event => `
-        <div class="event-item d-flex justify-content-between align-items-start">
-            <div>
-                <div class="fw-bold">${new Date(event.date).toLocaleDateString('it-IT')} ore ${event.time_start || '21:00'}-${event.time_end || '22:30'} - ${event.titolo}</div>
-                <div class="small text-muted">${event.luogo} • Tag: ${event.tag}</div>
-                <div class="small mt-1">${event.testo || ''}</div>
-            </div>
-            <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-outline-info" onclick="editEvent('${event.id}')"><i class='bx bx-edit'></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${event.id}')"><i class='bx bx-trash'></i></button>
-            </div>
+    const format = d => new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
+
+    eventsList.innerHTML = `
+        <div class="list-group list-group-flush mt-2">
+            ${data.map(event => {
+                const tagObj = allTags.find(t => t.name === event.tag) || { label: event.tag, color_class: 'badge-secondary', icon: 'bx-tag' };
+                const tagIcon = tagObj.icon.startsWith('bx') ? tagObj.icon : `bx ${tagObj.icon}`;
+                
+                return `
+                    <div class="list-group-item bg-transparent border-secondary border-opacity-25 px-0 py-2">
+                        <div class="d-flex align-items-center gap-3 cursor-pointer p-2 rounded hover-bg" onclick="toggleEventActions('${event.id}')" style="cursor: pointer; transition: background 0.2s;">
+                            <div class="text-center" style="min-width: 50px;">
+                                <div class="fw-bold text-white small">${format(event.date)}</div>
+                                <div class="text-muted" style="font-size: 0.65rem;">${event.time_start || '21:00'}</div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold text-info mb-0">${event.titolo}</div>
+                                <div class="text-muted small d-flex align-items-center gap-1">
+                                    <i class='${tagIcon}' style="font-size: 0.8rem;"></i> ${tagObj.label}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="actions-${event.id}" class="d-none mt-2 ps-5 pb-2">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-info px-3" onclick="editEvent('${event.id}')">
+                                    <i class='bx bx-edit-alt'></i> Modifica
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger px-3" onclick="deleteEvent('${event.id}')">
+                                    <i class='bx bx-trash'></i> Elimina
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
         </div>
-    `).join('');
+    `;
 }
+
+// Funzione per mostrare/nascondere le azioni di un evento
+window.toggleEventActions = (id) => {
+    const actionsDiv = document.getElementById(`actions-${id}`);
+    const allActions = document.querySelectorAll('[id^="actions-"]');
+    
+    const isOpening = actionsDiv.classList.contains('d-none');
+
+    // Chiudi tutti gli altri
+    allActions.forEach(el => el.classList.add('d-none'));
+
+    // Toggle quello selezionato
+    if (isOpening) {
+        actionsDiv.classList.remove('d-none');
+    }
+};
 
 eventForm.onsubmit = async (e) => {
     e.preventDefault();
@@ -508,7 +565,10 @@ async function deleteEvent(id) {
     }
 }
 
+window.deleteEvent = deleteEvent;
+
 async function editEvent(id) {
+    console.log("Modifica evento:", id);
     const { data, error } = await supabaseClient.from('events').select('*').eq('id', id).single();
     
     if (error) {
@@ -530,7 +590,12 @@ async function editEvent(id) {
     formTitle.innerText = "Modifica Evento";
     submitBtn.innerText = "Aggiorna Evento";
     cancelEditBtn.classList.remove('d-none');
+
+    // Scorri fino al form
+    document.getElementById('eventForm').scrollIntoView({ behavior: 'smooth' });
 }
+
+window.editEvent = editEvent;
 
 function resetForm() {
     eventForm.reset();
@@ -555,7 +620,7 @@ async function loadTeam() {
     try {
         const { data, error } = await supabaseClient
             .from('profiles')
-            .select('username, email, role, must_change_password')
+            .select('username, role, must_change_password')
             .order('username', { ascending: true });
 
         if (error) throw error;
@@ -563,21 +628,20 @@ async function loadTeam() {
         teamList.innerHTML = data.map(member => {
             const statusClass = member.must_change_password ? 'text-warning' : 'text-success';
             const statusIcon = member.must_change_password ? 'bx-lock-alt' : 'bx-check-shield';
-            const statusText = member.must_change_password ? 'In attesa cambio password' : 'Attivo';
+            const statusText = member.must_change_password ? 'In attesa' : 'Attivo';
 
             return `
                 <tr>
                     <td>
                         <div class="fw-semibold text-white">${member.username}</div>
                     </td>
-                    <td class="text-body-secondary small">${member.email}</td>
                     <td>
                         <span class="${statusClass} small d-flex align-items-center gap-1">
                             <i class='bx ${statusIcon}'></i> ${statusText}
                         </span>
                     </td>
                     <td>
-                        <span class="badge bg-info-subtle text-info border border-info-subtle small">${member.role}</span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle small text-uppercase" style="font-size: 0.65rem;">${member.role}</span>
                     </td>
                 </tr>
             `;
@@ -585,6 +649,6 @@ async function loadTeam() {
 
     } catch (err) {
         console.error("Errore caricamento team:", err);
-        teamList.innerHTML = `<tr><td colspan="4" class="text-center text-danger small py-3">Errore: ${err.message}</td></tr>`;
+        teamList.innerHTML = `<tr><td colspan="3" class="text-center text-danger small py-3">Errore: ${err.message}</td></tr>`;
     }
 }
