@@ -581,7 +581,7 @@ async function editEvent(id) {
     document.getElementById('eventId').value = data.id;
     document.getElementById('eventDate').value = data.date;
     document.getElementById('eventTimeStart').value = data.time_start || '21:00';
-    document.getElementById('eventTimeEnd').value = data.time_end || '22:30';
+    document.getElementById('eventTimeEnd').value = data.time_end || '22:00';
     document.getElementById('eventTitle').value = data.titolo;
     document.getElementById('eventTag').value = data.tag;
     document.getElementById('eventPlace').value = data.luogo;
