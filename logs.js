@@ -90,21 +90,24 @@ async function renderDiscordLogs(container, limit = 50) {
                 if (log.details.changes) {
                     detailsHtml = '<div class="log-details">';
                     log.details.changes.forEach(change => {
-                        // Stile Discord per il cambio valori
-                        detailsHtml += `<div class="mb-1">
-                            <span class="text-secondary small text-uppercase fw-bold" style="font-size: 0.7rem;">${change.field}</span><br>
-                            <span class="diff-old">${change.old || 'Nessuno'}</span> 
-                            <i class='bx bx-right-arrow-alt text-muted mx-1'></i> 
-                            <span class="diff-new">${change.new || 'Nessuno'}</span>
+                        // Stile Discord per il cambio valori con etichette chiare
+                        detailsHtml += `<div class="mb-2">
+                            <span class="text-secondary small text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">MODIFICATO ${change.field}</span><br>
+                            <div class="d-flex align-items-center flex-wrap gap-1">
+                                <span class="diff-old px-1 rounded" style="background: rgba(242, 63, 67, 0.1);">${change.old || 'Nessuno'}</span> 
+                                <i class='bx bx-right-arrow-alt text-muted'></i> 
+                                <span class="diff-new px-1 rounded" style="background: rgba(35, 165, 90, 0.1);">${change.new || 'Nessuno'}</span>
+                            </div>
                         </div>`;
                     });
                     detailsHtml += '</div>';
                 } else if (log.action.includes('CREATE')) {
-                    // Per la creazione, mostriamo i dati inseriti
+                    // Per la creazione, mostriamo i dati inseriti in modo ordinato
                     detailsHtml = '<div class="log-details">';
                     const entries = Object.entries(log.details).filter(([k]) => k !== 'title' && k !== 'name');
                     entries.forEach(([key, val]) => {
-                        detailsHtml += `<div><span class="text-secondary small text-uppercase fw-bold" style="font-size: 0.7rem;">${key}</span>: ${val}</div>`;
+                        const label = key.charAt(0).toUpperCase() + key.slice(1);
+                        detailsHtml += `<div class="mb-1"><span class="text-secondary fw-bold" style="font-size: 0.7rem;">${label}</span>: <span class="text-info">${val}</span></div>`;
                     });
                     detailsHtml += '</div>';
                 }

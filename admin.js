@@ -387,17 +387,17 @@ eventForm.onsubmit = async (e) => {
             const changes = [];
             const fields = [
                 { key: 'date', label: 'Data' },
-                { key: 'time_start', label: 'Inizio' },
-                { key: 'time_end', label: 'Fine' },
-                { key: 'titolo', label: 'Titolo' },
+                { key: 'time_start', label: 'Ora Inizio' },
+                { key: 'time_end', label: 'Ora Fine' },
+                { key: 'titolo', label: 'Nome Evento' },
                 { key: 'tag', label: 'Tag' },
                 { key: 'luogo', label: 'Luogo' },
                 { key: 'testo', label: 'Descrizione' }
             ];
 
             fields.forEach(f => {
-                const oldVal = editingEventData[f.key] || '';
-                const newVal = eventData[f.key] || '';
+                const oldVal = String(editingEventData[f.key] || '');
+                const newVal = String(eventData[f.key] || '');
                 if (oldVal !== newVal) {
                     changes.push({ field: f.label, old: oldVal, new: newVal });
                 }
@@ -407,9 +407,9 @@ eventForm.onsubmit = async (e) => {
                 logDetails.changes = changes;
             }
         } else if (!id) {
-            // Nuovo evento: logga dettagli base
+            // Nuovo evento: logga dettagli base più completi
+            logDetails.info = `${date} alle ${time_start}`;
             logDetails.location = luogo;
-            logDetails.date = date;
         }
 
         logAction(action, logDetails);
