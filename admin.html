@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="it" data-bs-theme="dark">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin - Oppeado</title>
+  <link rel="icon" type="image/png" href="logo.PNG">
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+
+  <style>
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      position: relative;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #05060d;
+      color: #f7f7ff;
+      min-height: 100vh;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 2rem;
+      transition: all 0.3s ease;
+    }
+
+    .glass-card:hover {
+      border-color: rgba(0, 191, 196, 0.4);
+    }
+
+    .form-control, .form-select {
+      background: #1a1d2b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-radius: 10px;
+    }
+
+    .form-control:focus, .form-select:focus {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: #00bfc4;
+      color: #fff;
+      box-shadow: 0 0 0 0.25rem rgba(0, 191, 196, 0.25);
+    }
+
+    /* Fix per la visibilità delle opzioni del select */
+    .form-select option {
+      background-color: #1a1d2b;
+      color: #fff;
+    }
+
+    .btn-brand {
+      background: #00bfc4;
+      color: #000;
+      font-weight: 600;
+    }
+
+    .btn-brand:hover {
+      background: #00d5d5;
+    }
+
+    #loginSection {
+      max-width: 400px;
+      margin: 60px auto;
+    }
+
+    @media (max-width: 575.98px) {
+      .glass-card {
+        padding: 1.25rem;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .dashboard-header {
+        flex-direction: column;
+        gap: 1.5rem;
+        align-items: flex-start !important;
+      }
+
+      .dashboard-header .btn-outline-danger {
+        align-self: flex-end;
+      }
+    }
+
+    #adminDashboard {
+      display: none;
+      padding-top: 50px;
+    }
+
+    .event-item {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1rem 0;
+    }
+
+    .event-item:last-child {
+      border-bottom: none;
+    }
+
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      max-height: 150px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 400px) {
+      .icon-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .icon-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      font-size: 1.2rem;
+    }
+
+    .icon-item:hover {
+      background: rgba(0, 191, 196, 0.2);
+      color: #00bfc4;
+    }
+
+    .icon-item.active {
+      background: #00bfc4;
+      color: #000;
+    }
+
+    #iconPreview {
+      font-size: 1.5rem;
+      margin-left: 10px;
+      color: #00bfc4;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <!-- SEZIONE LOGIN -->
+    <div id="loginSection" class="glass-card text-center" data-aos="fade-up">
+      <img src="logo.PNG" alt="Logo" class="mb-4" style="height: 60px;">
+      <h2 class="mb-4">Admin Login</h2>
+      <form id="loginForm">
+        <div class="mb-3 text-start">
+          <label class="form-label">Username o Email</label>
+          <input type="text" id="loginIdentifier" class="form-control" required>
+        </div>
+        <div class="mb-4 text-start">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPass" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-brand w-100 py-2">Accedi</button>
+      </form>
+    </div>
+
+    <!-- SEZIONE DASHBOARD -->
+    <div id="adminDashboard" data-aos="fade-in">
+      <div class="d-flex justify-content-between align-items-center mb-5 dashboard-header">
+        <div class="d-flex align-items-center gap-3">
+          <a href="index.html" class="btn btn-outline-info btn-sm"><i class='bx bx-home-alt'></i> Home</a>
+          <h1 class="mb-0">Dashboard Eventi</h1>
+        </div>
+        <button id="btnLogout" class="btn btn-outline-danger btn-sm">Logout</button>
+      </div>
+
+      <div class="row g-4">
+        <!-- FORM NUOVO EVENTO -->
+        <div class="col-lg-4">
+          <div class="glass-card mb-4">
+            <h3 id="formTitle" class="h5 mb-4">Aggiungi Evento</h3>
+            <form id="eventForm">
+              <input type="hidden" id="eventId">
+              <div class="mb-3">
+                <label class="form-label">Data</label>
+                <input type="date" id="eventDate" class="form-control" required>
+              </div>
+              <div class="row mb-3">
+                <div class="col-6">
+                  <label class="form-label">Inizio</label>
+                  <input type="time" id="eventTimeStart" class="form-control" required value="21:00">
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Fine</label>
+                  <input type="time" id="eventTimeEnd" class="form-control" required value="22:30">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Titolo</label>
+                <input type="text" id="eventTitle" class="form-control" required placeholder="Es. Incontro 1">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Tag</label>
+                <select id="eventTag" class="form-select" required>
+                  <!-- Popolato dinamicamente -->
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Luogo</label>
+                <input type="text" id="eventPlace" class="form-control" required placeholder="Es. Parrocchia">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Descrizione</label>
+                <textarea id="eventText" class="form-control" rows="3" placeholder="Dettagli incontro..."></textarea>
+              </div>
+              <button type="submit" id="submitBtn" class="btn btn-brand w-100">Salva Evento</button>
+              <button type="button" id="cancelEdit" class="btn btn-secondary w-100 mt-2 d-none">Annulla Modifica</button>
+            </form>
+          </div>
+
+          <!-- GESTIONE TAG -->
+          <div class="glass-card">
+            <h3 class="h5 mb-4">Gestione Tag</h3>
+            <form id="tagForm" class="mb-4">
+              <div class="mb-2">
+                <input type="text" id="tagName" class="form-control form-control-sm" placeholder="ID Tag (es. gita)" required>
+              </div>
+              <div class="mb-2">
+                <input type="text" id="tagLabel" class="form-control form-control-sm" placeholder="Etichetta (es. Gita Fuori)" required>
+              </div>
+              <div class="mb-2 d-flex align-items-center">
+                <input type="text" id="tagIcon" class="form-control form-control-sm" placeholder="Icona (seleziona sotto)" required readonly>
+                <div id="iconPreview"><i class='bx bx-question-mark'></i></div>
+              </div>
+              <div class="icon-grid" id="iconPicker">
+                <!-- Popolato da JS -->
+              </div>
+              <div class="mb-3">
+                <select id="tagColor" class="form-select form-select-sm">
+                  <option value="badge-limit">Azzurro (Limit)</option>
+                  <option value="badge-special">Rosa (Special)</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-outline-info btn-sm w-100">Aggiungi Tag</button>
+            </form>
+            <div id="tagsList" class="small">
+              <!-- Lista tag con tasto elimina -->
+            </div>
+          </div>
+        </div>
+
+        <!-- LISTA EVENTI -->
+        <div class="col-lg-8">
+          <div class="glass-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h3 class="h5 mb-0">Eventi Esistenti</h3>
+              <select id="filterTime" class="form-select form-select-sm w-auto">
+                <option value="future">Prossimi</option>
+                <option value="all">Tutti (Archivio)</option>
+              </select>
+            </div>
+            <div id="eventsList">
+              <div class="text-center py-5">
+                <div class="spinner-border text-info"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEZIONE LOGS -->
+      <div class="glass-card mt-4">
+        <h3 class="h5 mb-4">Storico Attività (Logs)</h3>
+        <div id="logsList" class="small" style="max-height: 400px; overflow-y: auto;">
+          <div class="text-center py-4">
+            <div class="spinner-border text-info spinner-sm"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="logs.js"></script>
+  <script src="admin.js"></script>
+</body>
+
+</html>
