@@ -37,6 +37,78 @@ const COMMON_ICONS = [
     'bx-gift', 'bx-award', 'bx-medal', 'bx-trophy', 'bx-target-lock'
 ];
 
+const getFullIcon = (icon) => {
+    if (!icon) return 'bx bx-tag';
+    if (icon.startsWith('bx ')) return icon;
+    return `bx ${icon}`;
+};
+
+// --- FUNZIONI GLOBALI (EXPORT IMMEDIATO) ---
+
+window.editEvent = async (id) => {
+    console.log("Richiesta modifica evento:", id);
+    try {
+        const { data, error } = await supabaseClient.from('events').select('*').eq('id', id).single();
+        
+        if (error) throw error;
+
+        editingEventData = data; // Salva per il log dei cambiamenti
+
+        document.getElementById('eventId').value = data.id;
+        document.getElementById('eventDate').value = data.date;
+        document.getElementById('eventTimeStart').value = data.time_start || '21:00';
+        document.getElementById('eventTimeEnd').value = data.time_end || '22:30';
+        document.getElementById('eventTitle').value = data.titolo;
+        document.getElementById('eventTag').value = data.tag;
+        document.getElementById('eventPlace').value = data.luogo;
+        document.getElementById('eventText').value = data.testo;
+
+        formTitle.innerText = "Modifica Evento";
+        submitBtn.innerText = "Aggiorna Evento";
+        cancelEditBtn.classList.remove('d-none');
+
+        // Scorri fino al form
+        document.getElementById('eventForm').scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+        alert("Errore recupero dati: " + err.message);
+    }
+};
+
+window.deleteEvent = async (id) => {
+    if (!confirm("Sei sicuro di voler eliminare questo evento?")) return;
+
+    try {
+        // Get event details for logging before deleting
+        const { data: eventData } = await supabaseClient.from('events').select('titolo').eq('id', id).single();
+
+        const { error } = await supabaseClient.from('events').delete().eq('id', id);
+        if (error) throw error;
+
+        if (eventData) {
+            logAction('DELETE_EVENT', { title: eventData.titolo });
+        }
+        loadEvents();
+        loadLogs();
+    } catch (err) {
+        alert("Errore eliminazione: " + err.message);
+    }
+};
+
+window.toggleEventActions = (id) => {
+    const actionsDiv = document.getElementById(`actions-${id}`);
+    const allActions = document.querySelectorAll('[id^="actions-"]');
+    
+    const isOpening = actionsDiv.classList.contains('d-none');
+
+    // Chiudi tutti gli altri
+    allActions.forEach(el => el.classList.add('d-none'));
+
+    // Toggle quello selezionato
+    if (isOpening) {
+        actionsDiv.classList.remove('d-none');
+    }
+};
+
 // --- INIZIALIZZAZIONE ---
 
 // Gestione visibilità sezioni e overlay
@@ -341,7 +413,7 @@ function renderTags() {
         <div class="d-flex flex-wrap gap-2 pt-2">
             ${allTags.map(t => `
                 <div class="tag-pill d-flex align-items-center gap-2 px-2 py-1 rounded-pill border border-secondary bg-dark-subtle" style="font-size: 0.8rem;">
-                    <i class='${t.icon} text-info'></i>
+                    <i class='${getFullIcon(t.icon)} text-info'></i>
                     <span class="text-white">${t.label}</span>
                     <button class="btn btn-link btn-sm text-danger p-0 lh-1" onclick="deleteTag('${t.id}')" title="Elimina tag">
                         <i class='bx bx-x-circle'></i>
@@ -424,7 +496,7 @@ async function loadEvents() {
         <div class="list-group list-group-flush mt-2">
             ${data.map(event => {
                 const tagObj = allTags.find(t => t.name === event.tag) || { label: event.tag, color_class: 'badge-secondary', icon: 'bx-tag' };
-                const tagIcon = tagObj.icon.startsWith('bx') ? tagObj.icon : `bx ${tagObj.icon}`;
+                const tagIcon = getFullIcon(tagObj.icon);
                 
                 return `
                     <div class="list-group-item bg-transparent border-secondary border-opacity-25 px-0 py-2">
@@ -458,21 +530,7 @@ async function loadEvents() {
     `;
 }
 
-// Funzione per mostrare/nascondere le azioni di un evento
-window.toggleEventActions = (id) => {
-    const actionsDiv = document.getElementById(`actions-${id}`);
-    const allActions = document.querySelectorAll('[id^="actions-"]');
-    
-    const isOpening = actionsDiv.classList.contains('d-none');
-
-    // Chiudi tutti gli altri
-    allActions.forEach(el => el.classList.add('d-none'));
-
-    // Toggle quello selezionato
-    if (isOpening) {
-        actionsDiv.classList.remove('d-none');
-    }
-};
+cancelEditBtn.onclick = resetForm;
 
 eventForm.onsubmit = async (e) => {
     e.preventDefault();
@@ -543,60 +601,6 @@ eventForm.onsubmit = async (e) => {
     }
 };
 
-async function deleteEvent(id) {
-    if (!confirm("Sei sicuro di voler eliminare questo evento?")) return;
-
-    // Get event details for logging before deleting
-    const { data: eventData, error: fetchError } = await supabaseClient.from('events').select('titolo').eq('id', id).single();
-    if (fetchError) {
-        console.error('Could not fetch event for logging', fetchError);
-    }
-
-    const { error } = await supabaseClient.from('events').delete().eq('id', id);
-
-    if (error) {
-        alert("Errore eliminazione: " + error.message);
-    } else {
-        if (eventData) {
-            logAction('DELETE_EVENT', { title: eventData.titolo });
-        }
-        loadEvents();
-        loadLogs();
-    }
-}
-
-window.deleteEvent = deleteEvent;
-
-async function editEvent(id) {
-    console.log("Modifica evento:", id);
-    const { data, error } = await supabaseClient.from('events').select('*').eq('id', id).single();
-    
-    if (error) {
-        alert("Errore recupero dati: " + error.message);
-        return;
-    }
-
-    editingEventData = data; // Salva per il log dei cambiamenti
-
-    document.getElementById('eventId').value = data.id;
-    document.getElementById('eventDate').value = data.date;
-    document.getElementById('eventTimeStart').value = data.time_start || '21:00';
-    document.getElementById('eventTimeEnd').value = data.time_end || '22:00';
-    document.getElementById('eventTitle').value = data.titolo;
-    document.getElementById('eventTag').value = data.tag;
-    document.getElementById('eventPlace').value = data.luogo;
-    document.getElementById('eventText').value = data.testo;
-
-    formTitle.innerText = "Modifica Evento";
-    submitBtn.innerText = "Aggiorna Evento";
-    cancelEditBtn.classList.remove('d-none');
-
-    // Scorri fino al form
-    document.getElementById('eventForm').scrollIntoView({ behavior: 'smooth' });
-}
-
-window.editEvent = editEvent;
-
 function resetForm() {
     eventForm.reset();
     document.getElementById('eventId').value = "";
@@ -605,8 +609,6 @@ function resetForm() {
     submitBtn.innerText = "Salva Evento";
     cancelEditBtn.classList.add('d-none');
 }
-
-cancelEditBtn.onclick = resetForm;
 
 // --- FINE ---
 // Nota: La gestione dei log è ora in logs.js
